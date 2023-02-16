@@ -9,18 +9,17 @@ typedef struct rod_elements_1d{
 	float prop;		// prop in f
 	float* element_array; // ell in f
 	int num_restrained_nodes; // nr in the book
-	float* nodal_freedom_array[2];	// wtf in the book. The restrained node number and a zero following it
+	int* restrained_node_numbers; // The node number of the restrained node
+	float* restrained_node_values;	//  The value of the restraind at the coresponding restrained node
 	int num_loaded_nodes;
 	int* loaded_node_numbers;
-	float* loaded_node_loads;
+	float* loaded_node_values;
 	int fixed_freedoms; // fixed_freedoms. Used for displacment B.C
 
 	/*NOTE: 
 	The default for 1d_rod elements is that nodes are not restrained
 	
-	For thesse types of 1d problems it is simple to generate the steering vector g*
-	
-	*/ 
+	For thesse types of 1d problems it is simple to generate the steering vector g* */ 
 } rod_elements_1d;
 
 void print_problem_paramaters(rod_elements_1d problem_paramaters){
@@ -36,6 +35,24 @@ void print_problem_paramaters(rod_elements_1d problem_paramaters){
 		}
 		printf("element_array[%d]: %f\n", i, problem_paramaters.element_array[i]);
 	}
+	// print out the restrained node array
+	for(int i = 0; i<problem_paramaters.num_restrained_nodes; i++){
+		if(i == 0){
+			printf("Restrained Node Arraay:\n");
+			printf("restrained_node[%d] = %f\n", problem_paramaters.restrained_node_numbers[i], problem_paramaters.restrained_node_values[i]);
+		}
+		printf("restrained_node[%d] = %f\n", problem_paramaters.restrained_node_numbers[i], problem_paramaters.restrained_node_values[i]);
+	}
+	// print out the loaded node array
+	for(int i = 0; i<problem_paramaters.num_loaded_nodes; i++){
+		if(i == 0){
+			printf("Loaded Node Arraay:\n");
+			printf("loaded_node[%d] = %f\n", problem_paramaters.loaded_node_numbers[i], problem_paramaters.loaded_node_values[i]);
+		}
+		printf("loaded_node[%d] = %f\n", problem_paramaters.loaded_node_numbers[i], problem_paramaters.loaded_node_values[i]);
+	}
+	// print out the fixed freedoms? 
+	printf("fixed freedom: %d\n", problem_paramaters.fixed_freedoms);	
 }
 
 int read_params(char* file_name){
@@ -58,8 +75,22 @@ int main(int argc, int* argv[]){
 	for(int i = 0; i<problem_1.num_els; i++){
 		problem_1.element_array[i] = 4.20;
 	}
+	problem_1.num_restrained_nodes = 4;
+	problem_1.restrained_node_numbers = malloc(problem_1.num_restrained_nodes*sizeof(int));
+	problem_1.restrained_node_values = malloc(problem_1.num_restrained_nodes*sizeof(float));
+	for(int i = 0; i<problem_1.num_restrained_nodes; i++){
+		problem_1.restrained_node_numbers[i] = i;
+		problem_1.restrained_node_values[i] = 6.9;
+	}
+	problem_1.num_loaded_nodes = 6;
+	problem_1.loaded_node_numbers = malloc(problem_1.num_loaded_nodes*sizeof(int));
+	problem_1.loaded_node_values = malloc(problem_1.num_loaded_nodes*sizeof(float));
+	for(int i = 0; i<problem_1.num_loaded_nodes; i++){
+		problem_1.loaded_node_numbers[i] = i;
+		problem_1.loaded_node_values[i] = 1.87;
+	}
+	problem_1.fixed_freedoms = 187;
+
 	print_problem_paramaters(problem_1);
-
-
 	return 0;
 }
