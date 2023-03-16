@@ -25,6 +25,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "mmio.h"
+typedef struct{
+	/*i, j and value arrays for whole matrix */
+	int *i, *j;
+	float *value;
+} matrix_data;
 
 int main(int argc, char *argv[])
 {
@@ -94,10 +99,23 @@ int main(int argc, char *argv[])
     /* now write out matrix */
     /************************/
 
+	matrix_data matrix_0;
+	matrix_0.i = (int*) malloc(nz*sizeof(int));
+	matrix_0.j = (int*) malloc(nz*sizeof(int));
+	matrix_0.value = (float*) malloc(nz*sizeof(float));
+
     mm_write_banner(stdout, matcode);
     mm_write_mtx_crd_size(stdout, M, N, nz);
-    for (i=0; i<nz; i++)
-        fprintf(stdout, "%d %d %20.19g\n", I[i]+1, J[i]+1, val[i]);
+    for(i=0; i<nz; i++)
+	{
+		matrix_0.i[i] = I[i];
+		matrix_0.j[i] = J[i];
+		matrix_0.value[i] = val[i];
+	}
+
+	for(i = 0; i<nz; i++){
+		fprintf(stdout, "%d %d %20.19g\n", matrix_0.i[i], matrix_0.j[i], matrix_0.value[i]);
+	}
 
 	return 0;
 }
