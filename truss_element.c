@@ -47,70 +47,36 @@ void local_truss_assembly(int num_nodes, int num_elements, float *nodes_x, float
 	/*Takes input a truss_element  and assembles its stiffness matrix*/
 }
 
-void calc_element_length(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z){
+void calc_element_length(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *element_length){
 	// calulate the element length for each element
-	float x_i, x_j, y_i, y_j, z_i, z_j, length_e;
-	printf("Calculating Element Lengths\n");
-	for(int i = 0; i<num_element; i++){
-		printf("================element %d================\n", i);
+	float x_i, x_j, y_i, y_j, z_i, z_j;
+	int i;
+	for(i = 0; i<num_element; i++){
 		x_i = nodes_x[element_connectiviity[i*nodes_per_element]]; 
-		printf("x_i = %f\n", x_i);
 		x_j = nodes_x[element_connectiviity[(i*nodes_per_element)+1]];
-		printf("x_j = %f\n", x_j);
 		y_i = nodes_y[element_connectiviity[i*nodes_per_element]];
-		printf("y_i = %f\n", y_i);
 		y_j = nodes_y[element_connectiviity[(i*nodes_per_element)+1]];
-		printf("y_j = %f\n", y_j);
 		z_i = nodes_z[element_connectiviity[i*nodes_per_element]];
-		printf("z_i = %f\n", z_i);
 		z_j = nodes_z[element_connectiviity[(i*nodes_per_element)+1]];
-		printf("z_j = %f\n", z_i);
-		length_e = sqrt(((x_j - x_i)*(x_j - x_i)) + ((y_j - y_i)*(y_j - y_i)) + ((z_j - z_i)*(z_j - z_i)));
-		printf("l_e = %f\n", length_e);
+		element_length[i] = sqrtf(((x_j - x_i)*(x_j - x_i)) + ((y_j - y_i)*(y_j - y_i)) + ((z_j - z_i)*(z_j - z_i)));
 	}
 }
 
-void calc_direction_cosine(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *direction_cosine_l){
-	// For each element calculate the l, m, and n direction cosines
-	for(int i = 0; i<num_element*nodes_per_element; i++){
-		printf("%d\n", element_connectiviity[i]); // Print the element connectivity array
+void calc_direction_cosine(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *element_length, float *direction_cosine_l, float *direction_cosine_m, float *direction_cosine_n){
+	// For each element calculate the l_ij, m_ij, and n_ij direction cosines
+	float l_i, m_i, n_i;
+	int i;
+	for(i = 0; i<num_element; i++){
+		l_i = (nodes_x[element_connectiviity[(i*nodes_per_element)+1]] - nodes_x[element_connectiviity[i*nodes_per_element]])/element_length[i];
+		m_i = (nodes_y[element_connectiviity[(i*nodes_per_element)+1]] - nodes_y[element_connectiviity[i*nodes_per_element]])/element_length[i];
+		n_i = (nodes_z[element_connectiviity[(i*nodes_per_element)+1]] - nodes_z[element_connectiviity[i*nodes_per_element]])/element_length[i];
+		direction_cosine_l[i] = l_i;
+		direction_cosine_m[i] = m_i;
+		direction_cosine_n[i] = n_i;
 	}
 }
 
-void print_problem_parameters(rod_elements_1d problem_paramaters){
-	printf("Number of Node: %d\n", problem_paramaters.num_node);
-	printf("Number of Elements: %d\n",problem_paramaters.num_els);
-	printf("np_types: %d\n", problem_paramaters.np_types);
-	printf("Prop: %f\n", problem_paramaters.prop);
-	// print out the element size array
-	for(int i = 0; i<problem_paramaters.num_els; i++){
-		if(i == 0){
-			printf("Element Array:\n");
-			printf("element_array[%d]: %f\n", i, problem_paramaters.element_array[i]);
-		}
-		printf("element_array[%d]: %f\n", i, problem_paramaters.element_array[i]);
-	}
-	// print out the restrained node array
-	for(int i = 0; i<problem_paramaters.num_restrained_nodes; i++){
-		if(i == 0){
-			printf("Restrained Node Arraay:\n");
-			printf("restrained_node[%d] = %f\n", problem_paramaters.restrained_node_numbers[i], problem_paramaters.restrained_node_values[i]);
-		}
-		printf("restrained_node[%d] = %f\n", problem_paramaters.restrained_node_numbers[i], problem_paramaters.restrained_node_values[i]);
-	}
-	// print out the loaded node array
-	for(int i = 0; i<problem_paramaters.num_loaded_nodes; i++){
-		if(i == 0){
-			printf("Loaded Node Arraay:\n");
-			printf("loaded_node[%d] = %f\n", problem_paramaters.loaded_node_numbers[i], problem_paramaters.loaded_node_values[i]);
-		}
-		printf("loaded_node[%d] = %f\n", problem_paramaters.loaded_node_numbers[i], problem_paramaters.loaded_node_values[i]);
-	}
-	// print out the fixed freedoms? 
-	printf("fixed freedom: %d\n", problem_paramaters.fixed_freedoms);	
-}
-
-int read_mesh_paramaters(char* file_name){
+int read_mesh(char* file_name){
 	// Reads in a .msh file to store the nodes and elements into arrays
 	FILE* mesh_file = fopen(file_name, "rb"); // Reading binary version of the mesh file remove the b for ASCI 
 	fseek(mesh_file, 0, SEEK_END);
@@ -139,9 +105,6 @@ int read_mesh_paramaters(char* file_name){
 	for(long i = ((nodes_start-string) + nodes_start_offset); i<(nodes_end-string); i++){
 		printf("%c", string[i]);
 		// The first row of $Nodes contains the following entries
-		
-
-		
 	}
 	return 0;
 }
@@ -181,6 +144,8 @@ int main(int argc, char* argv[]){
 	nodes_z = (float*) malloc(num_node*sizeof(float));
 	element_connectiviity = (int*) malloc(num_element*nodes_per_element*sizeof(int));
 	direction_cosine_l = (float*) malloc(num_element*sizeof(float));
+	direction_cosine_m = (float*) malloc(num_element*sizeof(float));
+	direction_cosine_n = (float*) malloc(num_element*sizeof(float));
 	element_length = (float*) malloc(num_element*sizeof(float));
 	
 	// Fill arrays with sample data
@@ -195,8 +160,10 @@ int main(int argc, char* argv[]){
 	element_connectiviity[2] = 0; element_connectiviity[3] = 2; // Element 1
 	element_connectiviity[4] = 1; element_connectiviity[5] = 2; // Element 2
 
-	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, direction_cosine_l);
-	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z);
+	// Generate the stiffness and mass matricies
+	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length);
+	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length, direction_cosine_l, direction_cosine_m, direction_cosine_n);
+
 	free(nodes_x);
 	free(nodes_y);
 	free(nodes_z);
