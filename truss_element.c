@@ -5,6 +5,24 @@
 #include <math.h>
 #include "logging.h"
 
+//===== Nodal Data ====
+int num_node;
+float *nodes_x;
+float *nodes_y;
+float *nodes_z;
+
+//==== Element Data ====
+int num_element;
+int nodes_per_element = 2;
+int *element_connectiviity;
+
+float *cross_section_area;
+float *element_length;
+float *direction_cosine_l;
+float *direction_cosine_m;
+float *direction_cosine_n;
+float *youngs_modulus;
+
 typedef struct rod_elements_1d{
 	int num_node;
 	int num_els;		//nels in f
@@ -25,17 +43,38 @@ typedef struct rod_elements_1d{
 	For thesse types of 1d problems it is simple to generate the steering vector g* */ 
 } rod_elements_1d;
 
-
-typedef struct truss_element_SERIAL{
-
-} truss_element_SERIAL;
-
-typedef struct truss_element_PARALELL{
-
-} truss_element_PARALELL;
-
-void local_truss_assembly_SERIAL(float vertex_table, truss_element_SERIAL truss_elment){
+void local_truss_assembly(int num_nodes, int num_elements, float *nodes_x, float *nodes_y,  float *nodes_z){
 	/*Takes input a truss_element  and assembles its stiffness matrix*/
+}
+
+void calc_element_length(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z){
+	// calulate the element length for each element
+	float x_i, x_j, y_i, y_j, z_i, z_j, length_e;
+	printf("Calculating Element Lengths\n");
+	for(int i = 0; i<num_element; i++){
+		printf("================element %d================\n", i);
+		x_i = nodes_x[element_connectiviity[i*nodes_per_element]]; 
+		printf("x_i = %f\n", x_i);
+		x_j = nodes_x[element_connectiviity[(i*nodes_per_element)+1]];
+		printf("x_j = %f\n", x_j);
+		y_i = nodes_y[element_connectiviity[i*nodes_per_element]];
+		printf("y_i = %f\n", y_i);
+		y_j = nodes_y[element_connectiviity[(i*nodes_per_element)+1]];
+		printf("y_j = %f\n", y_j);
+		z_i = nodes_z[element_connectiviity[i*nodes_per_element]];
+		printf("z_i = %f\n", z_i);
+		z_j = nodes_z[element_connectiviity[(i*nodes_per_element)+1]];
+		printf("z_j = %f\n", z_i);
+		length_e = sqrt(((x_j - x_i)*(x_j - x_i)) + ((y_j - y_i)*(y_j - y_i)) + ((z_j - z_i)*(z_j - z_i)));
+		printf("l_e = %f\n", length_e);
+	}
+}
+
+void calc_direction_cosine(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *direction_cosine_l){
+	// For each element calculate the l, m, and n direction cosines
+	for(int i = 0; i<num_element*nodes_per_element; i++){
+		printf("%d\n", element_connectiviity[i]); // Print the element connectivity array
+	}
 }
 
 void print_problem_parameters(rod_elements_1d problem_paramaters){
@@ -132,7 +171,38 @@ int read_mesh_nodes(char* mesh_node_data, float* node_x_pos, float* node_y_pos, 
 int main(int argc, char* argv[]){
 	log_set_level(0);
 	log_set_quiet(0);
-	read_mesh_paramaters("/home/ramen_newdals/Documents/ECE1755/project/fe_anyls/mesh/sample_mesh_0_bin.msh");
+	//read_mesh_paramaters("/home/ramen_newdals/Documents/ECE1755/project/fe_anyls/mesh/sample_mesh_0_bin.msh");
 
+	num_node = 3;
+	num_element = 3;
+	nodes_per_element = 2;
+	nodes_x = (float*) malloc(num_node*sizeof(float));
+	nodes_y = (float*) malloc(num_node*sizeof(float));
+	nodes_z = (float*) malloc(num_node*sizeof(float));
+	element_connectiviity = (int*) malloc(num_element*nodes_per_element*sizeof(int));
+	direction_cosine_l = (float*) malloc(num_element*sizeof(float));
+	element_length = (float*) malloc(num_element*sizeof(float));
+	
+	// Fill arrays with sample data
+	// X-Node data
+	nodes_x[0] = 0; nodes_x[1] = 1; nodes_x[2] = 0;
+	// Y-Node data
+	nodes_y[0] = 0; nodes_y[1] = 0; nodes_y[2] = 1;
+	// Z-Node data
+	nodes_z[0] = 0;	nodes_z[1] = 0; nodes_z[2] = 0;
+	// Setting up the element connectivity
+	element_connectiviity[0] = 0; element_connectiviity[1] = 1; // Element 0
+	element_connectiviity[2] = 0; element_connectiviity[3] = 2; // Element 1
+	element_connectiviity[4] = 1; element_connectiviity[5] = 2; // Element 2
+
+	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, direction_cosine_l);
+	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z);
+	free(nodes_x);
+	free(nodes_y);
+	free(nodes_z);
+	free(element_connectiviity);
+	free(direction_cosine_l);
+	
+	printf("aw helllllllllll yeah\n");
 	return 0;
 }
