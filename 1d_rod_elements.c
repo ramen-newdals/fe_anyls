@@ -22,7 +22,7 @@ typedef struct rod_elements_1d{
 	For thesse types of 1d problems it is simple to generate the steering vector g* */ 
 } rod_elements_1d;
 
-void print_problem_paramaters(rod_elements_1d problem_paramaters){
+void print_problem_parameters(rod_elements_1d problem_paramaters){
 	printf("Number of Node: %d\n", problem_paramaters.num_node);
 	printf("Number of Elements: %d\n",problem_paramaters.num_els);
 	printf("np_types: %d\n", problem_paramaters.np_types);
@@ -55,11 +55,16 @@ void print_problem_paramaters(rod_elements_1d problem_paramaters){
 	printf("fixed freedom: %d\n", problem_paramaters.fixed_freedoms);	
 }
 
-int read_params(char* file_name){
+int read_problem_parameters(char* file_name){
 	FILE* input_file;
-	fopen(file_name, "w+");
-	// Read the 
-	
+	input_file = fopen(file_name, "r");
+	int c;
+	// read the input file (The format is a bit shit, but the book follows it 0__o)
+	while((c = fgetc(input_file)) != EOF){
+		printf("%d", (int) c);
+		//putchar(c);
+	}
+
 	fclose(input_file);
 }
 
@@ -91,6 +96,9 @@ int main(int argc, int* argv[]){
 	}
 	problem_1.fixed_freedoms = 187;
 
-	print_problem_paramaters(problem_1);
+	print_problem_parameters(problem_1);
+
+	read_problem_parameters("p41_1.dat");
+
 	return 0;
 }
