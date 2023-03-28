@@ -76,6 +76,21 @@ void calc_direction_cosine(int num_element, int nodes_per_element, int *element_
 	}
 }
 
+void generate_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int column_num, float *stiffness_matrix){
+	//	INPUTS: direction_cosine_l, direction_cosine_m, direction_cosine_n, column_num, stiffness_column
+	//  -------
+	int i, j; // stiffness_matrix row and colum indicies
+	switch (column_num)
+	{
+	case /* constant-expression */:
+		/* code */
+		break;
+	
+	default:
+		break;
+	}
+}
+
 int read_mesh(char* file_name){
 	// Reads in a .msh file to store the nodes and elements into arrays
 	FILE* mesh_file = fopen(file_name, "rb"); // Reading binary version of the mesh file remove the b for ASCI 
@@ -107,28 +122,6 @@ int read_mesh(char* file_name){
 		// The first row of $Nodes contains the following entries
 	}
 	return 0;
-}
-
-int read_mesh_nodes(char* mesh_node_data, float* node_x_pos, float* node_y_pos, float node_z_pos){
-	/*  x_pos, y_pos, z_pos are arrays of size: sizeof(float)*num_nodes 
-		each array holds the x, y, locations of each node
-		going through the mesh_node data need to populate the arrays
-	*/
-
-	int num_entity_blocks, // The number of blocks?
-		 	num_nodes, // The total number of nodes in the mesh
-			min_node_tag, max_node_tag; // The start and end node index tags
-	
-	int c; // Current charecter in the string
-	for(int i = 0; i<2; i++){
-		while(c != EOF){
-			num_entity_blocks = (long) c;
-		}
-	}
-
-	for(long i = 0; i<num_nodes; i++){
-
-	}
 }
 
 int main(int argc, char* argv[]){
