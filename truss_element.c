@@ -77,29 +77,48 @@ void calc_direction_cosine(int num_element, int nodes_per_element, int *element_
 	}
 }
 
-void calc_dyadic(int num_element, float *a, float *b, float *c){
-	// Calculate the dyadic of two equally sized vectors a and b and stores the result in c
-	int i,j;
-	for(i = 0; i<num_element; i++){
-		for(j = 0; j<num_element; j++){
-			c[(i*num_element)+j] = a[i]*b[j];
-		}
-	}
-	// Print out the dyadic for testing correctness
-	for(i = 0; i<num_element; i++){
-		for(j = 0; j<num_element; j++){
-			printf("%f\n", c[(i*num_element)+j]);
-		}
-	}
-}
-
 void generate_element_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int element_num, float *element_stiffness_matrix, int mat_row, int mat_col){
 	//	INPUTS: direction_cosine_l, direction_cosine_m, direction_cosine_n, column_num, stiffness_column
+
+	// The dyadic of the direction cosine vector withits self gives
+	// [k_00, k_01, k_01, k_10, k_11, k_12, K_20, k_21, k_22] --> The result of the dyuadic of [l_ij, m_ij, k_ij][l_ij, m_ij, k_ij]
+	// k_00 = l_ij*l_ij, k_01 = l_ij*m_ij, k_02 = l_ij*n_ij, k_10 = m_ij*l_ij, k_11 = m_ij*n_ij
+	// k_20 = n_ij*l_ij, k_21 = n_ij*m_ij, k_22 = n_ij*n_ij
+	// This can be used to asseembly the elements stiffness matrix entries as,
+	// [ k_00,  k_01,  k_01, -k_00, -k_01, -k_02,
+	//   k_10,  k_11,  k_12, -k_10, -k_11, -k_12
+	//	 K_20,  k_21,  k_22, -k_20, -k_21, -k_22
+	//	-k_00, -k_01, -k_02,  k_00,  k_01,  k_02,
+	//	-k_10, -k_11, -k_12,  k_10,  k_11,  k_12
+	//	-k_20, -k_21, -k_22,  k_20,  k_21,  k_22 ]
+
 	int i, j; // row column identifies
+	float *direction_cosines = (float *) malloc(3*sizeof(float));
+
+	// Fill direction cosine vector with the current element
+	direction_cosines[0] = direction_cosine_l[element_num];
+	direction_cosines[1] = direction_cosine_m[element_num];
+	direction_cosines[2] = direction_cosine_n[element_num];
+	
+	// Fill first 3 rows of stiffness matrix
+	for(i = 0; i<3; i++){
+		for(j = 0; j<3; j++){
+			element_stiffness_matrix[(i*6)+j] = direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matrix[(i*6)+3+j] = -1*direction_cosines[i]*direction_cosines[j];
+		}
+	}
+	// Fill last 3 rows of stiffness matrix
+	for(i = 0; i<3; i++){
+		for(j = 0; j<3; j++){
+			element_stiffness_matrix[(i*6)+j+18] = -1*direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matrix[(i*6)+3+j+18] = direction_cosines[i]*direction_cosines[j];
+		}
+	}
+
+	// print the stiffness matrix for debugging
 	printf("Printing Element Stiffness Matrix:\n");
 	for(i=0; i<mat_row; i++){
 		for(j=0; j<mat_col; j++){
-			element_stiffness_matrix[(i*mat_col)+j] = 6.9;
 			printf("%f\t", element_stiffness_matrix[(i*mat_col)+j]);
 		}
 		printf("\n");
@@ -147,9 +166,9 @@ int main(int argc, char* argv[]){
 	float dyadic_result[9];
 	float a[3] = {1.0, 0, 0};
 	float b[3] = {1,0, 0, 0};
-	calc_dyadic(3, a, b, dyadic_result);
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matrix, mat_row, mat_col);
-
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matrix, mat_row, mat_col);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matrix, mat_row, mat_col);
 
 	free(nodes_x);
 	free(nodes_y);
