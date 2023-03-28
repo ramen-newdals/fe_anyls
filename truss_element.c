@@ -22,6 +22,7 @@ float *direction_cosine_l;
 float *direction_cosine_m;
 float *direction_cosine_n;
 float *youngs_modulus;
+float *element_stiffness_matrix;
 
 typedef struct rod_elements_1d{
 	int num_node;
@@ -76,52 +77,33 @@ void calc_direction_cosine(int num_element, int nodes_per_element, int *element_
 	}
 }
 
-void generate_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int column_num, float *stiffness_matrix){
-	//	INPUTS: direction_cosine_l, direction_cosine_m, direction_cosine_n, column_num, stiffness_column
-	//  -------
-	int i, j; // stiffness_matrix row and colum indicies
-	switch (column_num)
-	{
-	case /* constant-expression */:
-		/* code */
-		break;
-	
-	default:
-		break;
+void calc_dyadic(int num_element, float *a, float *b, float *c){
+	// Calculate the dyadic of two equally sized vectors a and b and stores the result in c
+	int i,j;
+	for(i = 0; i<num_element; i++){
+		for(j = 0; j<num_element; j++){
+			c[(i*num_element)+j] = a[i]*b[j];
+		}
+	}
+	// Print out the dyadic for testing correctness
+	for(i = 0; i<num_element; i++){
+		for(j = 0; j<num_element; j++){
+			printf("%f\n", c[(i*num_element)+j]);
+		}
 	}
 }
 
-int read_mesh(char* file_name){
-	// Reads in a .msh file to store the nodes and elements into arrays
-	FILE* mesh_file = fopen(file_name, "rb"); // Reading binary version of the mesh file remove the b for ASCI 
-	fseek(mesh_file, 0, SEEK_END);
-	long fsize = ftell(mesh_file);
-	fseek(mesh_file, 0, SEEK_SET);
-	char *string = malloc(fsize+1);
-
-	fread(string, fsize, 1, mesh_file);
-	fclose(mesh_file);
-	string[fsize] = 0;
-
-	// Find $Nodes section of string
-	char* nodes_start_key = "$Nodes";
-	int nodes_start_offset = 7;
-	char* nodes_end_key = "$EndNodes";
-	char* nodes_start = strstr(string, nodes_start_key);
-	char* nodes_end = strstr(string, nodes_end_key);
-    if((!nodes_start) || (!nodes_end)){
-		printf("Mesh file does not contain a $Nodes section check file and try again\n");
-		return -1;
+void generate_element_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int element_num, float *element_stiffness_matrix, int mat_row, int mat_col){
+	//	INPUTS: direction_cosine_l, direction_cosine_m, direction_cosine_n, column_num, stiffness_column
+	int i, j; // row column identifies
+	printf("Printing Element Stiffness Matrix:\n");
+	for(i=0; i<mat_row; i++){
+		for(j=0; j<mat_col; j++){
+			element_stiffness_matrix[(i*mat_col)+j] = 6.9;
+			printf("%f\t", element_stiffness_matrix[(i*mat_col)+j]);
+		}
+		printf("\n");
 	}
-	// Building the number of nodes array
-
-	printf("Nodes Section starts at: %d\n Nodes Section ends at: %d\n", nodes_start-string, nodes_end-string);
-	// Itterate throuhg each chatecter of the string and assign them to the approptiate arrays
-	for(long i = ((nodes_start-string) + nodes_start_offset); i<(nodes_end-string); i++){
-		printf("%c", string[i]);
-		// The first row of $Nodes contains the following entries
-	}
-	return 0;
 }
 
 int main(int argc, char* argv[]){
@@ -140,6 +122,9 @@ int main(int argc, char* argv[]){
 	direction_cosine_m = (float*) malloc(num_element*sizeof(float));
 	direction_cosine_n = (float*) malloc(num_element*sizeof(float));
 	element_length = (float*) malloc(num_element*sizeof(float));
+
+	// TEST MATRIX for generating element stiffness matricies
+	element_stiffness_matrix = (float*) malloc(6*6*sizeof(float));
 	
 	// Fill arrays with sample data
 	// X-Node data
@@ -157,11 +142,21 @@ int main(int argc, char* argv[]){
 	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length);
 	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length, direction_cosine_l, direction_cosine_m, direction_cosine_n);
 
+	int mat_row, mat_col;
+	mat_row = 6; mat_col = 6;
+	float dyadic_result[9];
+	float a[3] = {1.0, 0, 0};
+	float b[3] = {1,0, 0, 0};
+	calc_dyadic(3, a, b, dyadic_result);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matrix, mat_row, mat_col);
+
+
 	free(nodes_x);
 	free(nodes_y);
 	free(nodes_z);
 	free(element_connectiviity);
 	free(direction_cosine_l);
+	free(element_stiffness_matrix);
 	
 	printf("aw helllllllllll yeah\n");
 	return 0;
