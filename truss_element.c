@@ -163,9 +163,6 @@ int main(int argc, char* argv[]){
 
 	int mat_row, mat_col;
 	mat_row = 6; mat_col = 6;
-	float dyadic_result[9];
-	float a[3] = {1.0, 0, 0};
-	float b[3] = {1,0, 0, 0};
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matrix, mat_row, mat_col);
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matrix, mat_row, mat_col);
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matrix, mat_row, mat_col);
