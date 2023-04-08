@@ -1,7 +1,7 @@
 CC=g++
 NVCC=nvcc
 CC_FLAGS=-O3 -Wall -std=c++17 -g
-NVCC_FLAGS= -std=c++17 -c
+NVCC_FLAGS= -std=c++17 -c -g
 CC_LIBS= -lstdc++
 NVCC_LIBS = -lcuda -lcudart -L/opt/cuda/lib64
 INCDIRS=-I/usr/include/eigen3 -I/opt/cuda/include
