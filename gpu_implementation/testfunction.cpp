@@ -1,6 +1,7 @@
-#include "test.hpp"
+#include "testfunction.hpp"
 #include "kernel.hpp"
 #include <Eigen/Core>
+#include "testfunction.hpp"
 
 double testfunction(){
     std::vector<Eigen::Vector3d> v1(10, Eigen::Vector3d{ 1.0, 1.0, 1.0 });

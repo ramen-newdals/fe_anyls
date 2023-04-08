@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <vector>
 #include "kernel.hpp"
-#include "test.hpp"
+#include "testfunction.hpp"
 
 int main(int argc, char *argv[]){
     double result;
