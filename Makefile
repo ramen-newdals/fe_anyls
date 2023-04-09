@@ -1,7 +1,7 @@
 # makefile for truss simulation
 
 C=gcc
-CFLAGS=-O2 -g -Wall -Wfatal-errors -Wconversion
+CFLAGS=-O2 -g -Wall -Wfatal-errors -Wconversion -ftree-vectorize
 LDFLAGS=-O2 -g -lm -Wall -Wfatal-errors -Wconversion -Llog.h
 
 all: truss

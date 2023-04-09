@@ -44,10 +44,6 @@ typedef struct rod_elements_1d{
 	For thesse types of 1d problems it is simple to generate the steering vector g* */ 
 } rod_elements_1d;
 
-void local_truss_assembly(int num_nodes, int num_elements, float *nodes_x, float *nodes_y,  float *nodes_z){
-	/*Takes input a truss_element  and assembles its stiffness matrix*/
-}
-
 void calc_element_length(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *element_length){
 	// calulate the element length for each element
 	float x_i, x_j, y_i, y_j, z_i, z_j;

@@ -25,6 +25,21 @@ __global__ void cu_dot(Eigen::Vector3d *v1, Eigen::Vector3d *v2, double *out, si
     return;
 }
 
+__global__ void cu_calc_element_length(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *element_length){
+    // calulate the element length for each element
+	float x_i, x_j, y_i, y_j, z_i, z_j;
+	int i;
+	for(i = 0; i<num_element; i++){
+		x_i = nodes_x[element_connectiviity[i*nodes_per_element]]; 
+		x_j = nodes_x[element_connectiviity[(i*nodes_per_element)+1]];
+		y_i = nodes_y[element_connectiviity[i*nodes_per_element]];
+		y_j = nodes_y[element_connectiviity[(i*nodes_per_element)+1]];
+		z_i = nodes_z[element_connectiviity[i*nodes_per_element]];
+		z_j = nodes_z[element_connectiviity[(i*nodes_per_element)+1]];
+		element_length[i] = sqrtf(((x_j - x_i)*(x_j - x_i)) + ((y_j - y_i)*(y_j - y_i)) + ((z_j - z_i)*(z_j - z_i)));
+	}
+}
+
 // The wrapper for the calling of the actual kernel
 double dot(const std::vector<Eigen::Vector3d> & v1, const std::vector<Eigen::Vector3d> & v2){        
     int n = v1.size();
