@@ -21,14 +21,6 @@ typedef struct truss_structure
 	/* data */
 }truss_structure;
 
-
-void print_truss_element(truss_element element){
-	printf("Node 0\n");
-	printf("x=%f, y=%f, z=%f", element.node_0[0], element.node_0[1], element.node_0[2]);
-	printf("Node 1\n");
-	printf("\tx=%f, y=%f, z=%f", element.node_1[0], element.node_1[1], element.node_1[2]);
-}
-
 //===== Nodal Data ====
 int num_node;
 int dof_per_node;
@@ -87,13 +79,14 @@ void calc_direction_cosine(int num_element, int nodes_per_element, int *element_
 
 void print_element_stiffness_matrix(float *element_stiffness_matricies, int element_num, int num_row, int num_col){
 	int i, j, element_num_offset; // Loop iterators for row and col
-
+	element_num_offset = num_row*num_col*element_num;
 		printf("Printing Element %d's Stiffness Matrix:\n", element_num);
 	for(i=0; i<num_row; i++){
 		for(j=0; j<num_col; j++){
-			printf("%f\t", element_stiffness_matricies[(i*num_row)+j]);
+			printf("%f\t", element_stiffness_matricies[((i*num_row)+j)+element_num_offset]);
 		}
 		printf("\n");
+
 	}
 
 }
@@ -162,7 +155,7 @@ void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *r
 			// for each node in the element
 			for(dof = 0; dof<dof_per_node; dof++){
 				int node_num;
-				node_num = element_connectiviity[element*dof_per_node + node]; // [0, 1, 1, 2, 0, 2]
+				node_num = element_connectiviity[element*dof_per_node + node]; /* calculates the current node using the element_connectivity array [0, 1, 1, 2, 0, 2]*/
 				row_index[element*dof_per_node + dof] = node_num + dof;
 			}
 		}
