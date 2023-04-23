@@ -4,45 +4,57 @@
 #include <stdarg.h>
 #include <math.h>
 #include "logging.h"
+#include <immintrin.h>
+
+typedef struct truss_element
+{
+	/* data */
+	float *node_0;
+	float *node_1;
+	float E;
+	float A;
+	float l_e;
+} truss_element;
+
+typedef struct truss_structure
+{
+	/* data */
+}truss_structure;
+
+
+void print_truss_element(truss_element element){
+	printf("Node 0\n");
+	printf("x=%f, y=%f, z=%f", element.node_0[0], element.node_0[1], element.node_0[2]);
+	printf("Node 1\n");
+	printf("\tx=%f, y=%f, z=%f", element.node_1[0], element.node_1[1], element.node_1[2]);
+}
 
 //===== Nodal Data ====
 int num_node;
+int dof_per_node;
 float *nodes_x;
 float *nodes_y;
 float *nodes_z;
 
 //==== Element Data ====
-int num_element;
-int nodes_per_element = 2;
-int *element_connectiviity;
+int num_element;					// Total number of elements in the mesh
+int num_color;						// Number of differnet colors needed to color the mesh
+int nodes_per_element = 2;			// Number of nodes per element
+int *element_connectiviity;			// Array that stores what nodes belon to what element with global numbering
+int *elemnet_color;							// The elements color for parallel assembly
 
-float *cross_section_area;
-float *element_length;
-float *direction_cosine_l;
-float *direction_cosine_m;
-float *direction_cosine_n;
-float *youngs_modulus;
-float *element_stiffness_matrix;
+float *cross_section_area; 			// *num_element
+float *element_length; 				// *num_element
+float *youngs_modulus; 				// *num_element
+float *direction_cosine_l; 			// *num_element
+float *direction_cosine_m; 			// *num_element
+float *direction_cosine_n; 			// *num_element
+float *element_stiffness_matricies; 	// *num_element
 
-typedef struct rod_elements_1d{
-	int num_node;
-	int num_els;		//nels in f
-	int np_types;		//np_types in f
-	float prop;		// prop in f
-	float* element_array; // ell in f
-	int num_restrained_nodes; // nr in the book
-	int* restrained_node_numbers; // The node number of the restrained node
-	float* restrained_node_values;	//  The value of the restraind at the coresponding restrained node
-	int num_loaded_nodes;
-	int* loaded_node_numbers;
-	float* loaded_node_values;
-	int fixed_freedoms; // fixed_freedoms. Used for displacment B.C
-
-	/*NOTE: 
-	The default for 1d_rod elements is that nodes are not restrained
-	
-	For thesse types of 1d problems it is simple to generate the steering vector g* */ 
-} rod_elements_1d;
+//=======Global Stifness matrix Data ============
+int *row_index; // Rox index
+int *col_index; // column index
+float *value;	// value at given row, colum
 
 void calc_element_length(int num_element, int nodes_per_element, int *element_connectiviity, int num_node, float *nodes_x, float *nodes_y, float *nodes_z, float *element_length){
 	// calulate the element length for each element
@@ -73,7 +85,19 @@ void calc_direction_cosine(int num_element, int nodes_per_element, int *element_
 	}
 }
 
-void generate_element_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int element_num, float *element_stiffness_matrix, int mat_row, int mat_col){
+void print_element_stiffness_matrix(float *element_stiffness_matricies, int element_num, int num_row, int num_col){
+	int i, j;
+		printf("Printing Element %d's Stiffness Matrix:\n", element_num);
+	for(i=0; i<num_row; i++){
+		for(j=0; j<num_col; j++){
+			printf("%f\t", element_stiffness_matricies[(i*num_row)+j]);
+		}
+		printf("\n");
+	}
+
+}
+
+void generate_element_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int element_num, float *element_stiffness_matricies){
 	//	INPUTS: direction_cosine_l, direction_cosine_m, direction_cosine_n, column_num, stiffness_column
 
 	// The dyadic of the direction cosine vector withits self gives
@@ -99,36 +123,43 @@ void generate_element_stiffness_matricies(float *direction_cosine_l, float *dire
 	// Fill first 3 rows of stiffness matrix
 	for(i = 0; i<3; i++){
 		for(j = 0; j<3; j++){
-			element_stiffness_matrix[(i*6)+j] = direction_cosines[i]*direction_cosines[j];
-			element_stiffness_matrix[(i*6)+3+j] = -1*direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[(i*6)+j] = direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[(i*6)+3+j] = -1*direction_cosines[i]*direction_cosines[j];
 		}
 	}
 	// Fill last 3 rows of stiffness matrix
 	for(i = 0; i<3; i++){
 		for(j = 0; j<3; j++){
-			element_stiffness_matrix[(i*6)+j+18] = -1*direction_cosines[i]*direction_cosines[j];
-			element_stiffness_matrix[(i*6)+3+j+18] = direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[(i*6)+j+18] = -1*direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[(i*6)+3+j+18] = direction_cosines[i]*direction_cosines[j];
 		}
 	}
-
-	// print the stiffness matrix for debugging
-	printf("Printing Element Stiffness Matrix:\n");
-	for(i=0; i<mat_row; i++){
-		for(j=0; j<mat_col; j++){
-			printf("%f\t", element_stiffness_matrix[(i*mat_col)+j]);
-		}
-		printf("\n");
-	}
+	print_element_stiffness_matrix(element_stiffness_matricies, element_num, 6, 6);
 }
 
-int main(int argc, char* argv[]){
-	log_set_level(0);
-	log_set_quiet(0);
-	//read_mesh_paramaters("/home/ramen_newdals/Documents/ECE1755/project/fe_anyls/mesh/sample_mesh_0_bin.msh");
 
-	num_node = 3;
-	num_element = 3;
-	nodes_per_element = 2;
+void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *row_index, float *col_index, float *value, int *element_connectiviity, int *element_color){
+	// Takes in all of the element stiffness matricies and then bassed on the color of the element adds them to the element stiffness matrix
+	int color;
+	for(color = 0; color<num_color; color++){
+
+	}
+	int element, node, dof, temp_row_index, temp_col_index;
+	for(element = 0; element<num_element; element++){
+		// Go through each element
+		for(node = 0; node<nodes_per_element; node++){
+			// for each node in the element
+			for(dof = 0; dof<dof_per_node; dof++){
+				int node_num;
+				node_num = element_connectiviity[element*dof_per_node + node]; // [0, 1, 1, 2, 0, 2]
+				row_index[element*dof_per_node + dof] = node_num + dof;
+			}
+		}
+	}
+
+}
+
+void initalize_problem(int num_node, int num_element, int nodes_per_element){
 	nodes_x = (float*) malloc(num_node*sizeof(float));
 	nodes_y = (float*) malloc(num_node*sizeof(float));
 	nodes_z = (float*) malloc(num_node*sizeof(float));
@@ -139,7 +170,7 @@ int main(int argc, char* argv[]){
 	element_length = (float*) malloc(num_element*sizeof(float));
 
 	// TEST MATRIX for generating element stiffness matricies
-	element_stiffness_matrix = (float*) malloc(6*6*sizeof(float));
+	element_stiffness_matricies = (float*) malloc(6*6*sizeof(float));
 	
 	// Fill arrays with sample data
 	// X-Node data
@@ -153,23 +184,46 @@ int main(int argc, char* argv[]){
 	element_connectiviity[2] = 0; element_connectiviity[3] = 2; // Element 1
 	element_connectiviity[4] = 1; element_connectiviity[5] = 2; // Element 2
 
-	// Generate the stiffness and mass matricies
+	// perform the numerical integration for all elements
 	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length);
 	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length, direction_cosine_l, direction_cosine_m, direction_cosine_n);
 
-	int mat_row, mat_col;
-	mat_row = 6; mat_col = 6;
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matrix, mat_row, mat_col);
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matrix, mat_row, mat_col);
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matrix, mat_row, mat_col);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matricies);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matricies);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matricies);
 
+}
+
+void cleanup_problem(){
 	free(nodes_x);
 	free(nodes_y);
 	free(nodes_z);
 	free(element_connectiviity);
 	free(direction_cosine_l);
-	free(element_stiffness_matrix);
+	free(element_stiffness_matricies);
+}
+
+int main(int argc, char* argv[]){
+	// Set up logging
+	log_set_level(0);
+	log_set_quiet(0);
+
+	// initialize problem
+	num_node = 3;
+	num_element = 3;
+	nodes_per_element = 2;
+	initalize_problem(num_node, num_element, nodes_per_element);
+
+	// Free memory and exit gracefully
+	cleanup_problem();
 	
+	// Testing features
+	truss_element test_element;
+	test_element.A = 6.9;
+	test_element.E = 260;
+	test_element.node_0[0] = 0; test_element.node_0[1] = 0; test_element.node_0[2] = 0;
+	test_element.node_1[0] = 1; test_element.node_1[1] = 0; test_element.node_1[2] = 0;
+
 	printf("aw helllllllllll yeah\n");
 	return 0;
 }
