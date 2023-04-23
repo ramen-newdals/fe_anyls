@@ -142,28 +142,34 @@ void generate_element_stiffness_matricies(float *direction_cosine_l, float *dire
 }
 
 
-void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *row_index, float *col_index, float *value, int *element_connectiviity, int *element_color){
+void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *element_connectiviity, int *row_index, float *col_index, float *value, int num_row, int num_col){
 	// Takes in all of the element stiffness matricies and then bassed on the color of the element adds them to the element stiffness matrix
-	int color;
-	for(color = 0; color<num_color; color++){
-
-	}
-	int element, node, dof, temp_row_index, temp_col_index;
-	for(element = 0; element<num_element; element++){
-		// Go through each element
-		for(node = 0; node<nodes_per_element; node++){
-			// for each node in the element
+	int element, node, dof, node_num;
+	for(element = 0; element<num_element; element++){  // Go through each element
+		for(node = 0; node<nodes_per_element; node++){ // for each node in the element
 			for(dof = 0; dof<dof_per_node; dof++){
-				int node_num;
 				node_num = element_connectiviity[element*dof_per_node + node]; /* calculates the current node using the element_connectivity array [0, 1, 1, 2, 0, 2]*/
-				row_index[element*dof_per_node + dof] = node_num + dof;
+				row_index[element*dof_per_node + dof] = node_num + dof;	// global_stiffness_matrix row
+				row_index[element*dof_per_node + dof] = node_num + dof; // global_stiffness_matrix col
+				int element_num_offset = num_row*num_col*element;
+				for(int i = 0; i<3; i++){
+					value[element*dof_per_node + dof] = element_stiffness_matricies[(dof*i + i)+element_num_offset]; // global_sitiffness_matrix val
+				}
 			}
 		}
 	}
 
 }
 
+void print_global_stiffness_matrix(int *row_index, int *col_index, float *value, int num_node, int dof_per_node){
+	printf("The global_stiffness_matrix is:\n");
+	for(int i = 0; i<num_node*dof_per_node; i++){
+		printf("K(%d, %d) = %f", row_index[i], col_index[i], value[i]);
+	}
+}
+
 void initalize_problem(int num_node, int num_element, int nodes_per_element){
+	// element stifness matrix values
 	nodes_x = (float*) malloc(num_node*sizeof(float));
 	nodes_y = (float*) malloc(num_node*sizeof(float));
 	nodes_z = (float*) malloc(num_node*sizeof(float));
@@ -172,6 +178,11 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element){
 	direction_cosine_m = (float*) malloc(num_element*sizeof(float));
 	direction_cosine_n = (float*) malloc(num_element*sizeof(float));
 	element_length = (float*) malloc(num_element*sizeof(float));
+
+	// global stiffness matrix values
+	row_index = (int*) malloc(num_node*dof_per_node*sizeof(int));
+	col_index = (int*) malloc(num_node*dof_per_node*sizeof(int));
+	value = (float*) malloc(num_node*dof_per_node*sizeof(int));
 
 	// TEST MATRIX for generating element stiffness matricies
 	element_stiffness_matricies = (float*) malloc(6*6*sizeof(float)*num_element);
@@ -195,6 +206,8 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element){
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matricies, 6, 6);
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matricies, 6, 6);
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matricies, 6, 6);
+	assemble_global_stiffness_matrix(element_stiffness_matricies, element_connectiviity, row_index, col_index, value, 6, 6);
+	print_global_stiffness_matrix(row_index, col_index, value, num_node, dof_per_node);
 
 }
 
