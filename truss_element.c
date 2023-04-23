@@ -86,7 +86,8 @@ void calc_direction_cosine(int num_element, int nodes_per_element, int *element_
 }
 
 void print_element_stiffness_matrix(float *element_stiffness_matricies, int element_num, int num_row, int num_col){
-	int i, j;
+	int i, j, element_num_offset; // Loop iterators for row and col
+
 		printf("Printing Element %d's Stiffness Matrix:\n", element_num);
 	for(i=0; i<num_row; i++){
 		for(j=0; j<num_col; j++){
@@ -97,7 +98,7 @@ void print_element_stiffness_matrix(float *element_stiffness_matricies, int elem
 
 }
 
-void generate_element_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int element_num, float *element_stiffness_matricies){
+void generate_element_stiffness_matricies(float *direction_cosine_l, float *direction_cosine_m, float*direction_cosine_n, int element_num, float *element_stiffness_matricies, int num_row, int num_col){
 	//	INPUTS: direction_cosine_l, direction_cosine_m, direction_cosine_n, column_num, stiffness_column
 
 	// The dyadic of the direction cosine vector withits self gives
@@ -112,7 +113,17 @@ void generate_element_stiffness_matricies(float *direction_cosine_l, float *dire
 	//	-k_10, -k_11, -k_12,  k_10,  k_11,  k_12
 	//	-k_20, -k_21, -k_22,  k_20,  k_21,  k_22 ]
 
-	int i, j; // row column identifies
+	/* element_stiffness_matricies holds all of the element sitffness matricies in a single
+		contigious array. Each call of this function using the element_num the section of memory
+		that this specific call needs to write to is identified using:
+		num_row*num_col*element_num = the starting location for the specified elements stiffness matrix array
+		so to write the nth elements stiffness matrix into the single array will look like:
+		
+		+element_num_offset = num_row*num_col*element_num
+		element_stiffness_matricies[(~~Other code to find a local index~~) + +element_num_offset]*/
+
+	int i, j, element_num_offset; // row column identifies
+	element_num_offset = num_row*num_col*element_num; // The offset in the array to start populating data with
 	float *direction_cosines = (float *) malloc(3*sizeof(float));
 
 	// Fill direction cosine vector with the current element
@@ -123,15 +134,15 @@ void generate_element_stiffness_matricies(float *direction_cosine_l, float *dire
 	// Fill first 3 rows of stiffness matrix
 	for(i = 0; i<3; i++){
 		for(j = 0; j<3; j++){
-			element_stiffness_matricies[(i*6)+j] = direction_cosines[i]*direction_cosines[j];
-			element_stiffness_matricies[(i*6)+3+j] = -1*direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[((i*6)+j)+element_num_offset] = direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[((i*6)+3+j)+element_num_offset] = -1*direction_cosines[i]*direction_cosines[j];
 		}
 	}
 	// Fill last 3 rows of stiffness matrix
 	for(i = 0; i<3; i++){
 		for(j = 0; j<3; j++){
-			element_stiffness_matricies[(i*6)+j+18] = -1*direction_cosines[i]*direction_cosines[j];
-			element_stiffness_matricies[(i*6)+3+j+18] = direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[((i*6)+j+18)+element_num_offset] = -1*direction_cosines[i]*direction_cosines[j];
+			element_stiffness_matricies[((i*6)+3+j+18)+element_num_offset] = direction_cosines[i]*direction_cosines[j];
 		}
 	}
 	print_element_stiffness_matrix(element_stiffness_matricies, element_num, 6, 6);
@@ -170,7 +181,7 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element){
 	element_length = (float*) malloc(num_element*sizeof(float));
 
 	// TEST MATRIX for generating element stiffness matricies
-	element_stiffness_matricies = (float*) malloc(6*6*sizeof(float));
+	element_stiffness_matricies = (float*) malloc(6*6*sizeof(float)*num_element);
 	
 	// Fill arrays with sample data
 	// X-Node data
@@ -188,9 +199,9 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element){
 	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length);
 	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length, direction_cosine_l, direction_cosine_m, direction_cosine_n);
 
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matricies);
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matricies);
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matricies);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matricies, 6, 6);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matricies, 6, 6);
+	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matricies, 6, 6);
 
 }
 
