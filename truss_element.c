@@ -33,7 +33,7 @@ int num_element;					// Total number of elements in the mesh
 int num_color;						// Number of differnet colors needed to color the mesh
 int nodes_per_element = 2;			// Number of nodes per element
 int *element_connectiviity;			// Array that stores what nodes belon to what element with global numbering
-int *elemnet_color;							// The elements color for parallel assembly
+int *element_color;							// The elements color for parallel assembly
 
 float *cross_section_area; 			// *num_element
 float *element_length; 				// *num_element
@@ -142,33 +142,56 @@ void generate_element_stiffness_matricies(float *direction_cosine_l, float *dire
 }
 
 
+void initialize_global_stiffness_matrix(int *element_connectiviity, int *row_index, float *value, int num_values){
+	for(int i = 0; i<num_values; i++){
+		row_index[i] = 0;
+		col_index[i] = 0;
+		value[i] = 0;
+	}
+}
+
 void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *element_connectiviity, int *row_index, float *col_index, float *value, int num_row, int num_col){
 	// Takes in all of the element stiffness matricies and then bassed on the color of the element adds them to the element stiffness matrix
-	int element, node, dof, node_num;
+	int element, node, dof, node_value_offset;
+	int *node_num; // holds the node numbers for each node in the element
+	int *node_row_offset, *node_col_offset; // holds the row and colum offsets for each node
+	node_num = (int *)malloc(nodes_per_element*sizeof(int));
+	node_row_offset = (int *)malloc((nodes_per_element+1)*sizeof(int));
+	node_col_offset = (int *)malloc((nodes_per_element+1)*sizeof(int));
+
+	node_value_offset = dof_per_node*nodes_per_element*dof_per_node; // The offset in the local stiffness matrix to get the next regions value for the same row col movment
+
 	for(element = 0; element<num_element; element++){  // Go through each element
-		for(node = 0; node<nodes_per_element; node++){ // for each node in the element
-			for(dof = 0; dof<dof_per_node; dof++){
-				node_num = element_connectiviity[element*dof_per_node + node]; /* calculates the current node using the element_connectivity array [0, 1, 1, 2, 0, 2]*/
-				row_index[element*dof_per_node + dof] = node_num + dof;	// global_stiffness_matrix row
-				row_index[element*dof_per_node + dof] = node_num + dof; // global_stiffness_matrix col
-				int element_num_offset = num_row*num_col*element;
-				for(int i = 0; i<3; i++){
-					value[element*dof_per_node + dof] = element_stiffness_matricies[(dof*i + i)+element_num_offset]; // global_sitiffness_matrix val
+		for(node = 1; node<=nodes_per_element; node++){
+			node_num[node] = element_connectiviity[element*nodes_per_element + node]; /* calculates the current node using the element_connectivity array [0, 1, 1, 2, 0, 2]*/;
+			node_col_offset[node] = node_num[node]*dof_per_node;
+			node_row_offset[node] = node_num[node]*dof_per_node;
+		}
+		int element_num_offset = num_row*num_col*element;
+		for(node = 0; node<nodes_per_element; node++){
+			for(int row = 0; row<dof_per_node; row++){
+				for(int col = 0; col<3; col++){
+					row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row;	// global_stiffness_matrix row for nodes 0th region
+					row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row + node_row_offset[node + 1]; // global_stiffness_matrix row for nodes 1st region
+					col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col; // global_stiffness_matrix col for nodes 0th region
+					col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col + node_col_offset[node + 1]; // global_stiffness_matrix col for nodes 1st region
+					value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]; // global_sitiffness_matrix val for nodes 0th region
+					value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node) + node_value_offset]; // global_sitiffness_matrix val for nodes 1st region
 				}
 			}
 		}
 	}
-
 }
 
-void print_global_stiffness_matrix(int *row_index, int *col_index, float *value, int num_node, int dof_per_node){
+
+void print_global_stiffness_matrix(int *row_index, int *col_index, float *value, int num_node){
 	printf("The global_stiffness_matrix is:\n");
-	for(int i = 0; i<num_node*dof_per_node; i++){
-		printf("K(%d, %d) = %f", row_index[i], col_index[i], value[i]);
+	for(int i = 0; i<num_node; i++){
+		printf("K(%d, %d) = %f\n", row_index[i], col_index[i], value[i]);
 	}
 }
 
-void initalize_problem(int num_node, int num_element, int nodes_per_element){
+void initalize_problem(int num_node, int num_element, int nodes_per_element, int dof_per_node){
 	// element stifness matrix values
 	nodes_x = (float*) malloc(num_node*sizeof(float));
 	nodes_y = (float*) malloc(num_node*sizeof(float));
@@ -207,7 +230,7 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element){
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matricies, 6, 6);
 	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matricies, 6, 6);
 	assemble_global_stiffness_matrix(element_stiffness_matricies, element_connectiviity, row_index, col_index, value, 6, 6);
-	print_global_stiffness_matrix(row_index, col_index, value, num_node, dof_per_node);
+	print_global_stiffness_matrix(row_index, col_index, value, 18);
 
 }
 
@@ -218,6 +241,9 @@ void cleanup_problem(){
 	free(element_connectiviity);
 	free(direction_cosine_l);
 	free(element_stiffness_matricies);
+	free(row_index);
+	free(col_index);
+	free(value);
 }
 
 int main(int argc, char* argv[]){
@@ -229,7 +255,8 @@ int main(int argc, char* argv[]){
 	num_node = 3;
 	num_element = 3;
 	nodes_per_element = 2;
-	initalize_problem(num_node, num_element, nodes_per_element);
+	dof_per_node = 3;
+	initalize_problem(num_node, num_element, nodes_per_element, dof_per_node);
 
 	// Free memory and exit gracefully
 	cleanup_problem();
