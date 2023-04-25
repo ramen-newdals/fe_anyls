@@ -167,21 +167,24 @@ void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *e
 			node_col_offset[node] = node_num[node]*dof_per_node;
 			node_row_offset[node] = node_num[node]*dof_per_node;
 		}
+		/* The sparsity pattern can not be known "exatly" at compile time, so to overcome this will malloc the upper-bounded size for the number of elements in the sparse matrix!!!
+			For accessing the sparse matrix entities just do it off the dof_num and the global_node_num as this will allow for the easseist access pattern and with a colored
+			element connectivity graph will still prevent data-races*/
 		//int element_num_offset = num_row*num_col*element;
 		for(node = 0; node<nodes_per_element; node++){
 			for(int row = 0; row<dof_per_node; row++){
 				for(int col = 0; col<3; col++){
 					printf("elemnent:%d, node:%d\n", element, node_num[node]);
-					printf("row_index[%d]=%d\n", (element*dof_per_node + row + col), (node_num[node]*dof_per_node + row));
-					printf("col_index[%d]=%d\n", (element*dof_per_node + row + col), (node_num[node]*dof_per_node + col));
+					printf("row_index[%d]=%d\n", (node_num[node]*dof_per_node + row), (node_num[node]*dof_per_node + row));
+					printf("col_index[%d]=%d\n", (node_num[node]*dof_per_node + col), (node_num[node]*dof_per_node + col));
 					printf("value[%d]=%d\n", (element*dof_per_node + row + col), (element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]));
 					printf("==========================\n");
-					// row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row;	// global_stiffness_matrix row for nodes 0th region
-					// row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row + node_row_offset[node + 1]; // global_stiffness_matrix row for nodes 1st region
-					// col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col; // global_stiffness_matrix col for nodes 0th region
-					// col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col + node_col_offset[node + 1]; // global_stiffness_matrix col for nodes 1st region
-					// value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]; // global_sitiffness_matrix val for nodes 0th region
-					// value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node) + node_value_offset]; // global_sitiffness_matrix val for nodes 1st region
+					row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row;	// global_stiffness_matrix row for nodes 0th region
+					row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row + node_row_offset[node + 1]; // global_stiffness_matrix row for nodes 1st region
+					col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col; // global_stiffness_matrix col for nodes 0th region
+					col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col + node_col_offset[node + 1]; // global_stiffness_matrix col for nodes 1st region
+					value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]; // global_sitiffness_matrix val for nodes 0th region
+					value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node) + node_value_offset]; // global_sitiffness_matrix val for nodes 1st region
 				}
 			}
 		}
@@ -208,9 +211,9 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element, int
 	element_length = (float*) malloc(num_element*sizeof(float));
 
 	// global stiffness matrix values
-	row_index = (int*) malloc(num_node*dof_per_node*sizeof(int));
-	col_index = (int*) malloc(num_node*dof_per_node*sizeof(int));
-	value = (float*) malloc(num_node*dof_per_node*sizeof(int));
+	row_index = (int*) malloc((num_node*dof_per_node)*(num_node*dof_per_node)*sizeof(int));
+	col_index = (int*) malloc((num_node*dof_per_node)*(num_node*dof_per_node)*sizeof(int));
+	value = (float*) malloc((num_node*dof_per_node)*(num_node*dof_per_node)*sizeof(int));
 
 	// TEST MATRIX for generating element stiffness matricies
 	element_stiffness_matricies = (float*) malloc(6*6*sizeof(float)*num_element);
