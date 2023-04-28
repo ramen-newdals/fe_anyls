@@ -5,6 +5,7 @@
 #include <math.h>
 #include "logging.h"
 #include <immintrin.h>
+#include <time.h>
 
 typedef struct truss_element
 {
@@ -175,16 +176,16 @@ void assemble_global_stiffness_matrix(float *element_stiffness_matricies, int *e
 			for(int row = 0; row<dof_per_node; row++){
 				for(int col = 0; col<3; col++){
 					printf("elemnent:%d, node:%d\n", element, node_num[node]);
-					printf("row_index[%d]=%d\n", (node_num[node]*dof_per_node + row), (node_num[node]*dof_per_node + row));
-					printf("col_index[%d]=%d\n", (node_num[node]*dof_per_node + col), (node_num[node]*dof_per_node + col));
+					printf("row_index[%d]=%d\n", (element + (node*dof_per_node) + row + col), (node_num[node]*dof_per_node + row));
+					printf("col_index[%d]=%d\n", (element + (node*dof_per_node) + row + col), (node_num[node]*dof_per_node + col));
 					printf("value[%d]=%d\n", (element*dof_per_node + row + col), (element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]));
 					printf("==========================\n");
-					row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row;	// global_stiffness_matrix row for nodes 0th region
-					row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row + node_row_offset[node + 1]; // global_stiffness_matrix row for nodes 1st region
-					col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col; // global_stiffness_matrix col for nodes 0th region
-					col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col + node_col_offset[node + 1]; // global_stiffness_matrix col for nodes 1st region
-					value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]; // global_sitiffness_matrix val for nodes 0th region
-					value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node) + node_value_offset]; // global_sitiffness_matrix val for nodes 1st region
+					//row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row;	// global_stiffness_matrix row for nodes 0th region
+					//row_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + row + node_row_offset[node + 1]; // global_stiffness_matrix row for nodes 1st region
+					//col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col; // global_stiffness_matrix col for nodes 0th region
+					//col_index[element*dof_per_node + row + col] = node_num[node]*dof_per_node + col + node_col_offset[node + 1]; // global_stiffness_matrix col for nodes 1st region
+					//value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node)]; // global_sitiffness_matrix val for nodes 0th region
+					//value[element*dof_per_node + row + col] += element_stiffness_matricies[(row*dof_per_node + col) + (dof_per_node*node) + node_value_offset]; // global_sitiffness_matrix val for nodes 1st region
 				}
 			}
 		}
@@ -196,6 +197,43 @@ void print_global_stiffness_matrix(int *row_index, int *col_index, float *value,
 	printf("The global_stiffness_matrix is:\n");
 	for(int i = 0; i<num_node; i++){
 		printf("K(%d, %d) = %f\n", row_index[i], col_index[i], value[i]);
+	}
+}
+
+void generate_mesh(int num_node, int num_element, int *element_connectiviity, float *nodes_x, float *nodes_y, float *nodes_z){
+	// Given the number of nodes calulate the number of elements generate the trivial truss tiled
+	int num_truss;
+	num_truss = num_element/3;
+
+	// Generate the truss nodes and element connectivity
+	for(int n = 0; n<num_truss; n++){
+		// NODE 0
+		nodes_x[n*3] = n; // Add the 0th node in the truss x-component
+		nodes_y[n*3] = 0; // Add the 0th node in the truss y-compoent
+		nodes_z[n*3] = 0; // Add the 0th node in the truss z-compoent
+		// NODE 1
+		nodes_x[n*3 + 1] = n+1; // Add the 1st node in the truss x-component
+		nodes_y[n*3 + 1] = 1; // Add the 1st node in the truss y-compoent
+		nodes_z[n*3 + 1] = 0; // Add the 1st node in the truss z-compoent
+		// NODE 2
+		nodes_x[n*3 + 2] = n; // Add the 2nd node in the truss x-component
+		nodes_y[n*3 + 2] = 0; // Add the 2nd node in the truss y-compoent
+		nodes_z[n*3 + 2] = 0; // Add the 2nd node in the truss z-compoent
+
+		// Element connectivity
+		element_connectiviity[n*2] = n; element_connectiviity[(n*2)+1] = n+1; // Element 0
+		element_connectiviity[(n*2)+2] = n; element_connectiviity[(n*2)+3] = n+2; // Element 1
+		element_connectiviity[(n*2)+4] = n+1; element_connectiviity[(n*2)+5] = n+2; // Element 2
+	}
+
+	// Print out data for testing
+	if(1){
+		for(int i = 0; i<num_node; i++){
+			printf("Node %d x = %f, y = %f\n", i, nodes_x[i], nodes_y[i]);
+		}
+		for(int i = 0; i<num_element; i++){
+			printf("Element %d: node[0]=%d, node[1]=%d\n", i, element_connectiviity[i*2], element_connectiviity[(i*2)+1]);
+		}
 	}
 }
 
@@ -215,30 +253,32 @@ void initalize_problem(int num_node, int num_element, int nodes_per_element, int
 	col_index = (int*) malloc((num_node*dof_per_node)*(num_node*dof_per_node)*sizeof(int));
 	value = (float*) malloc((num_node*dof_per_node)*(num_node*dof_per_node)*sizeof(int));
 
-	// TEST MATRIX for generating element stiffness matricies
+	// MATRIX for generating element stiffness matricies
 	element_stiffness_matricies = (float*) malloc(6*6*sizeof(float)*num_element);
 	
-	// Fill arrays with sample data
-	// X-Node data
-	nodes_x[0] = 0; nodes_x[1] = 1; nodes_x[2] = 0;
-	// Y-Node data
-	nodes_y[0] = 0; nodes_y[1] = 0; nodes_y[2] = 1;
-	// Z-Node data
-	nodes_z[0] = 0;	nodes_z[1] = 0; nodes_z[2] = 0;
-	// Setting up the element connectivity
-	element_connectiviity[0] = 0; element_connectiviity[1] = 1; // Element 0
-	element_connectiviity[2] = 0; element_connectiviity[3] = 2; // Element 1
-	element_connectiviity[4] = 1; element_connectiviity[5] = 2; // Element 2
+	// // Fill arrays with sample data
+	// // X-Node data
+	// nodes_x[0] = 0; nodes_x[1] = 1; nodes_x[2] = 0; nodes_x[3] = 1;
+	// // Y-Node data
+	// nodes_y[0] = 0; nodes_y[1] = 0; nodes_y[2] = 1; nodes_y[3] = 1;
+	// // Z-Node data
+	// nodes_z[0] = 0;	nodes_z[1] = 0; nodes_z[2] = 0; nodes_y[3] = 0;
+	// // Setting up the element connectivity
+	// element_connectiviity[0] = 0; element_connectiviity[1] = 1; // Element 0
+	// element_connectiviity[2] = 0; element_connectiviity[3] = 2; // Element 1
+	// element_connectiviity[4] = 1; element_connectiviity[5] = 2; // Element 2
+
+	generate_mesh(num_node, num_element, element_connectiviity, nodes_x, nodes_y, nodes_z);
 
 	// perform the numerical integration for all elements
 	calc_element_length(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length);
 	calc_direction_cosine(num_element, nodes_per_element, element_connectiviity, num_node, nodes_x, nodes_y, nodes_z, element_length, direction_cosine_l, direction_cosine_m, direction_cosine_n);
 
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 0, element_stiffness_matricies, 6, 6);
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 1, element_stiffness_matricies, 6, 6);
-	generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, 2, element_stiffness_matricies, 6, 6);
-	assemble_global_stiffness_matrix(element_stiffness_matricies, element_connectiviity, row_index, col_index, value, 3);
-	//print_global_stiffness_matrix(row_index, col_index, value, 18);
+	for(int i = 0; i<num_element; i++){
+		generate_element_stiffness_matricies(direction_cosine_l, direction_cosine_m, direction_cosine_n, i, element_stiffness_matricies, 6, 6);
+		//assemble_global_stiffness_matrix(element_stiffness_matricies, element_connectiviity, row_index, col_index, value, 3);
+		//print_global_stiffness_matrix(row_index, col_index, value, 18);
+	}
 
 }
 
@@ -259,9 +299,17 @@ int main(int argc, char* argv[]){
 	log_set_level(0);
 	log_set_quiet(0);
 
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    char buff[100];
+    strftime(buff, sizeof buff, "%D %T", gmtime(&ts.tv_sec));
+    printf("Current time: %s.%09ld UTC\n", buff, ts.tv_nsec);
+    printf("Raw timespec.time_t: %jd\n", (intmax_t)ts.tv_sec);
+    printf("Raw timespec.tv_nsec: %09ld\n", ts.tv_nsec);  
+
 	// initialize problem
-	num_node = 3;
-	num_element = 3;
+	num_node = 5;
+	num_element = 6;
 	nodes_per_element = 2;
 	dof_per_node = 3;
 	initalize_problem(num_node, num_element, nodes_per_element, dof_per_node);
@@ -276,6 +324,10 @@ int main(int argc, char* argv[]){
 	test_element.node_0[0] = 0; test_element.node_0[1] = 0; test_element.node_0[2] = 0;
 	test_element.node_1[0] = 1; test_element.node_1[1] = 0; test_element.node_1[2] = 0;
 
+	time_t end = time(0);
+
+	double seconds = difftime(start, end);
 	printf("aw helllllllllll yeah\n");
+	printf("%.f seconds have passed since the beginning of the month.\n", seconds);
 	return 0;
 }
