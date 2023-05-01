@@ -139,7 +139,7 @@ void generate_element_stiffness_matricies(float *direction_cosine_l, float *dire
 			element_stiffness_matricies[((i*6)+3+j+18)+element_num_offset] = direction_cosines[i]*direction_cosines[j];
 		}
 	}
-	print_element_stiffness_matrix(element_stiffness_matricies, element_num, 6, 6);
+	//print_element_stiffness_matrix(element_stiffness_matricies, element_num, 6, 6);
 }
 
 
@@ -227,7 +227,7 @@ void generate_mesh(int num_node, int num_element, int *element_connectiviity, fl
 	}
 
 	// Print out data for testing
-	if(1){
+	if(0){
 		for(int i = 0; i<num_node; i++){
 			printf("Node %d x = %f, y = %f\n", i, nodes_x[i], nodes_y[i]);
 		}
@@ -299,17 +299,17 @@ int main(int argc, char* argv[]){
 	log_set_level(0);
 	log_set_quiet(0);
 
-    struct timespec ts;
-    timespec_get(&ts, TIME_UTC);
-    char buff[100];
-    strftime(buff, sizeof buff, "%D %T", gmtime(&ts.tv_sec));
-    printf("Current time: %s.%09ld UTC\n", buff, ts.tv_nsec);
-    printf("Raw timespec.time_t: %jd\n", (intmax_t)ts.tv_sec);
-    printf("Raw timespec.tv_nsec: %09ld\n", ts.tv_nsec);  
+    // struct timespec ts;
+    // timespec_get(&ts, TIME_UTC);
+    // char buff[100];
+    // strftime(buff, sizeof buff, "%D %T", gmtime(&ts.tv_sec));
+    // printf("Current time: %s.%09ld UTC\n", buff, ts.tv_nsec);
+    // printf("Raw timespec.time_t: %jd\n", (intmax_t)ts.tv_sec);
+    // printf("Raw timespec.tv_nsec: %09ld\n", ts.tv_nsec);  
 
 	// initialize problem
-	num_node = 5;
-	num_element = 6;
+	num_node = 9;
+	num_element = 12;
 	nodes_per_element = 2;
 	dof_per_node = 3;
 	initalize_problem(num_node, num_element, nodes_per_element, dof_per_node);
@@ -324,10 +324,10 @@ int main(int argc, char* argv[]){
 	test_element.node_0[0] = 0; test_element.node_0[1] = 0; test_element.node_0[2] = 0;
 	test_element.node_1[0] = 1; test_element.node_1[1] = 0; test_element.node_1[2] = 0;
 
-	time_t end = time(0);
+	// time_t end = time(0);
 
-	double seconds = difftime(start, end);
+	// double seconds = difftime(start, end);
 	printf("aw helllllllllll yeah\n");
-	printf("%.f seconds have passed since the beginning of the month.\n", seconds);
+	// printf("%.f seconds have passed since the beginning of the month.\n", seconds);
 	return 0;
 }

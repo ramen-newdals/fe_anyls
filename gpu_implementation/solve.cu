@@ -215,12 +215,12 @@ int main()
     int singularity;
     cusolveSafeCall(cusolverSpDcsrlsvluHost(solver_handle, N, nnz, descrA, h_A, h_A_RowIndices, h_A_ColIndices, h_y, 0.000001, 0, h_x, &singularity));
     // --- Using QR factorization
-    //cusolveSafeCall(cusolverSpDcsrlsvqrHost(solver_handle, N, nnz, descrA, h_A, h_A_RowIndices, h_A_ColIndices, h_y, 0.000001, 0, h_x, &singularity));
+    cusolveSafeCall(cusolverSpDcsrlsvqrHost(solver_handle, N, nnz, descrA, h_A, h_A_RowIndices, h_A_ColIndices, h_y, 0.000001, 0, h_x, &singularity));
 
-    //int rankA;
-    //int *p = (int *)malloc(N * sizeof(int));
-    //double min_norm;
-    //cusolveSafeCall(cusolverSpDcsrlsqvqrHost(solver_handle, N, N, nnz, descrA, h_A, h_A_RowIndices, h_A_ColIndices, h_y, 0.000001, &rankA, h_x, p, &min_norm));
+    int rankA;
+    int *p = (int *)malloc(N * sizeof(int));
+    double min_norm;
+    cusolveSafeCall(cusolverSpDcsrlsqvqrHost(solver_handle, N, N, nnz, descrA, h_A, h_A_RowIndices, h_A_ColIndices, h_y, 0.000001, &rankA, h_x, p, &min_norm));
 
     printf("Showing the results...\n");
     for (int i = 0; i < N; i++) printf("%f\n", h_x[i]);
